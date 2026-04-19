@@ -5,6 +5,8 @@
 #include "maze.h"
 #include "stack.h"
 
+#define IDX(r, c, cols) ((r) * (cols) + (c))
+
 struct Cell {
     bool up, down, left, right;
     bool visited;
@@ -16,6 +18,8 @@ struct Maze {
     struct Cell **grid;
     struct Cell *start;
     struct Cell *end;
+
+    Node **nodes;
 };
 
 Cell createCell(int row, int col)
@@ -31,6 +35,104 @@ Cell createCell(int row, int col)
 
     c.visited = false;
     return c;
+}
+
+void createNodeGrid(Maze *m)
+{
+    int total = m->rows * m->cols;
+
+    m->nodes = malloc(total * sizeof(Node *));
+
+    for (int i = 0; i < total; i++)
+    {
+        m->nodes[i] = malloc(sizeof(Node));
+
+        m->nodes[i]->up = NULL;
+        m->nodes[i]->down = NULL;
+        m->nodes[i]->left = NULL;
+        m->nodes[i]->right = NULL;
+
+        m->nodes[i]->visited = false;
+        m->nodes[i]->isEndingNode = false;
+        m->nodes[i]->isStartNode = false;
+    }
+}
+
+Node* buildGraph(Maze *m)
+{
+    int R = m->rows;
+    int C = m->cols;
+
+    // allocate node grid
+    Node **nodes = malloc(R * C * sizeof(Node *));
+
+    for (int i = 0; i < R * C; i++)
+    {
+        nodes[i] = malloc(sizeof(Node));
+        nodes[i]->up = NULL;
+        nodes[i]->down = NULL;
+        nodes[i]->left = NULL;
+        nodes[i]->right = NULL;
+        nodes[i]->visited = false;
+        nodes[i]->isEndingNode = false;
+    }
+
+    Node *startNode = NULL;
+
+    // build connections
+    for (int r = 0; r < R; r++)
+    {
+        for (int c = 0; c < C; c++)
+        {
+            Cell *cell = &m->grid[r][c];
+            Node *node = nodes[r * C + c];
+
+            node->row = r;
+            node->col = c;
+
+            // mark ending node
+            if (cell == m->end)
+                node->isEndingNode = true;
+
+            // save start node
+            if (cell == m->start)
+                startNode = node;
+
+            // UP
+            if (!cell->up && r > 0)
+            {
+                Node *n = nodes[(r - 1) * C + c];
+                node->up = n;
+                n->down = node;
+            }
+
+            // DOWN
+            if (!cell->down && r < R - 1)
+            {
+                Node *n = nodes[(r + 1) * C + c];
+                node->down = n;
+                n->up = node;
+            }
+
+            // LEFT
+            if (!cell->left && c > 0)
+            {
+                Node *n = nodes[r * C + (c - 1)];
+                node->left = n;
+                n->right = node;
+            }
+
+            // RIGHT
+            if (!cell->right && c < C - 1)
+            {
+                Node *n = nodes[r * C + (c + 1)];
+                node->right = n;
+                n->left = node;
+            }
+        }
+    }
+
+    return startNode;
 }
 
 Maze* generateMaze(int rows, int cols)

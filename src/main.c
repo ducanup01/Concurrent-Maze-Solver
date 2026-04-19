@@ -7,7 +7,9 @@
 
 void main()
 {
-    Maze *myMaze = generateMaze(10, 26);
+    Maze *myMaze = generateMaze(6, 15);
+    Node *startingPoint = buildGraph(myMaze);
+
     printMaze(myMaze);
 
     freeMaze(myMaze);
