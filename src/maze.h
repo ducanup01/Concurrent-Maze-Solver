@@ -29,6 +29,8 @@ void printMaze(Maze *m);
 // Cell *maze_get_start(Maze *m);
 // int maze_get_neighbors(Maze *m, Cell *c, Cell *out[4]);
 // bool maze_is_end(Maze *m, Cell *c);
+void saveMazeBinary(Maze *m, const char *filename);
+Maze *loadMazeBinary(const char *filename);
 
 static void shuffle(Cell **arr, int n);
 static void removeWall(Cell *a, Cell *b);

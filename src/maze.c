@@ -22,6 +22,72 @@ struct Maze {
     Node **nodes;
 };
 
+void saveMazeBinary(Maze *m, const char *filename)
+{
+    FILE *f = fopen(filename, "wb");
+    if (!f)
+    {
+        perror("open");
+        return;
+    }
+
+    int rows = m->rows;
+    int cols = m->cols;
+
+    fwrite(&rows, sizeof(int), 1, f);
+    fwrite(&cols, sizeof(int), 1, f);
+
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            Cell *cell = &m->grid[r][c];
+
+            unsigned char walls = 0;
+            walls |= cell->up << 0;
+            walls |= cell->down << 1;
+            walls |= cell->left << 2;
+            walls |= cell->right << 3;
+
+            fwrite(&walls, sizeof(unsigned char), 1, f);
+        }
+    }
+
+    fclose(f);
+}
+
+Maze *loadMazeBinary(const char *filename)
+{
+    FILE *f = fopen(filename, "rb");
+    if (!f)
+        return NULL;
+
+    int rows, cols;
+    fread(&rows, sizeof(int), 1, f);
+    fread(&cols, sizeof(int), 1, f);
+
+    Maze *m = generateMaze(rows, cols); // reuse allocation
+
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            unsigned char walls;
+            fread(&walls, sizeof(unsigned char), 1, f);
+
+            Cell *cell = &m->grid[r][c];
+
+            cell->up = (walls >> 0) & 1;
+            cell->down = (walls >> 1) & 1;
+            cell->left = (walls >> 2) & 1;
+            cell->right = (walls >> 3) & 1;
+        }
+    }
+
+    fclose(f);
+    return m;
+}
+
 Cell createCell(int row, int col)
 {
     Cell c;
@@ -97,6 +163,7 @@ Node* buildGraph(Maze *m)
             // save start node
             if (cell == m->start)
                 startNode = node;
+                node->isStartNode = true;
 
             // UP
             if (!cell->up && r > 0)
