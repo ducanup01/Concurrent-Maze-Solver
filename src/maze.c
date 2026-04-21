@@ -120,7 +120,7 @@ void createNodeGrid(Maze *m)
 
         m->nodes[i]->visited = false;
         m->nodes[i]->isEndingNode = false;
-        m->nodes[i]->isStartNode = false;
+        m->nodes[i]->isStartingNode = false;
     }
 }
 
@@ -163,7 +163,7 @@ Node* buildGraph(Maze *m)
             // save start node
             if (cell == m->start)
                 startNode = node;
-                node->isStartNode = true;
+                node->isStartingNode = true;
 
             // UP
             if (!cell->up && r > 0)

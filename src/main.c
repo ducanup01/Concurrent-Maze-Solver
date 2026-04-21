@@ -2,20 +2,24 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "maze.h"
-
+#include "mazeRunner.h"
 #include "stack.h"
 
 void main()
 {
     // Maze *myMaze = generateMaze(45, 120);
-    Maze *myMaze = loadMazeBinary("maze10x20.bin");
+    Maze *myMaze = loadMazeBinary("../saved_mazes/maze45x120.bin");
+    if (!myMaze)
+    {
+        printf("Failed to load maze\n");
+        exit(1);
+    }
 
-    Node *startingPoint = buildGraph(myMaze);
+    Node* startingPoint = buildGraph(myMaze);
 
-    printMaze(myMaze);
+    mazeTraverse(startingPoint);
 
-    // check right node
-    printf("%d\n", startingPoint->right->visited);
+    // printMaze(myMaze);
 
     // don't do this:
     // printf("%d\n", startingPoint->down->visited);

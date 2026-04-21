@@ -16,7 +16,7 @@ typedef struct Node {
     // don't use these 3
     int row, col;
     bool visited;
-    bool isStartNode;
+    bool isStartingNode;
 
 } Node;
 
