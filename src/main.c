@@ -9,7 +9,7 @@
 void main()
 {
     // Maze *myMaze = generateMaze(6, 15);
-    Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15_random.bin");
+    Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15_random_nonperfect.bin");
 
     Node* startingPoint = buildGraph(myMaze);
 
@@ -37,7 +37,7 @@ void main()
     // don't do this:
     // printf("%d\n", startingPoint->down->visited);
 
-    // saveMazeBinary(myMaze, "maze6x15_random.bin");
+    // saveMazeBinary(myMaze, "maze6x15_random_nonperfect.bin");
 
     freeMaze(myMaze);
 

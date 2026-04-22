@@ -9,7 +9,7 @@
 
 struct Cell {
     bool up, down, left, right;
-    bool visited;
+    int visited;
     int row, col;
 };
 
@@ -230,6 +230,31 @@ Node* buildGraph(Maze *m)
     return startNode;
 }
 
+void addRandomLoops(Maze *m, float probability)
+{
+    for (int r = 0; r < m->rows; r++)
+    {
+        for (int c = 0; c < m->cols; c++)
+        {
+            Cell *cell = &m->grid[r][c];
+
+            // remove RIGHT wall randomly
+            if (c < m->cols - 1 && ((float)rand() / RAND_MAX) < probability)
+            {
+                cell->right = false;
+                m->grid[r][c + 1].left = false;
+            }
+
+            // remove DOWN wall randomly
+            if (r < m->rows - 1 && ((float)rand() / RAND_MAX) < probability)
+            {
+                cell->down = false;
+                m->grid[r + 1][c].up = false;
+            }
+        }
+    }
+}
+
 Maze* generateMaze(int rows, int cols)
 {
     if (rows < 2 || cols < 2)
@@ -319,6 +344,9 @@ Maze* generateMaze(int rows, int cols)
             push(stack, next);
         } else pop(stack);
     }
+
+    // remove some random walls
+    addRandomLoops(m, 0.15f);
 
     // randomize start and end
     randomStartingRow = rand() % rows;
