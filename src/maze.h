@@ -22,7 +22,8 @@ typedef struct Node {
 
 Node *buildGraph(Maze *m);
 
-Maze *generateMaze(int rows, int cols);
+Maze* generateMazeRandomPositions(int rows, int cols);
+Maze* generateImperfectMazeRandomPositions(int rows, int cols);
 void freeMaze(Maze *m);
 void printMaze(Maze *m);
 

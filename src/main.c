@@ -6,12 +6,13 @@
 #include "stack.h"
 #include <time.h>
 
-void main()
+int main()
 {
-    // Maze *myMaze = generateMaze(6, 15);
-    Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15_random_nonperfect.bin");
+    Maze *myMaze = generateMazeRandomPositions(6, 15);
+    // Maze *myMaze = generateImperfectMazeRandomPositions(6, 15);
+    // Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15.bin");
 
-    Node* startingPoint = buildGraph(myMaze);
+    // Node* startingPoint = buildGraph(myMaze);
 
     if (!myMaze)
     {
@@ -41,4 +42,5 @@ void main()
 
     freeMaze(myMaze);
 
+    return 0;
 }

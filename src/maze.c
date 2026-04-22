@@ -255,7 +255,124 @@ void addRandomLoops(Maze *m, float probability)
     }
 }
 
-Maze* generateMaze(int rows, int cols)
+Maze* generateMazeRandomPositions(int rows, int cols)
+{
+    if (rows < 2 || cols < 2)
+    {
+        printf("Maze dimension must be at least 2x2");
+        return NULL;
+    }
+
+    Maze *m = malloc(sizeof(Maze));
+    // define maze size
+    m->rows = rows;
+    m->cols = cols;
+
+    // allocate space for all cells
+    m->grid = malloc(rows * sizeof(Cell *));
+    for (int r = 0; r < rows; r++)
+    {
+        m->grid[r] = malloc(cols * sizeof(Cell));
+        for (int c = 0; c < cols; c++)
+        {
+            m->grid[r][c] = createCell(r, c);
+        }
+    }
+
+    srand(time(NULL));
+
+    // define start and end
+    int randomStartingRow = rand() % rows;
+    int randomStartingCol = rand() % cols;
+
+    int randomEndingRow = rand() % rows;
+    int randomEndingCol = rand() % cols;
+
+    while (randomEndingRow == randomStartingRow || randomEndingCol == randomStartingCol)
+    {
+        randomEndingRow = rand() % rows;
+        randomEndingCol = rand() % cols;
+    }
+
+    // these are corner positions
+    // m->start = &m->grid[0][0];
+    // m->end = &m->grid[rows - 1][cols - 1];
+
+    // these are random start & end positions
+    m->start = &m->grid[randomStartingRow][randomStartingCol];
+    m->end = &m->grid[randomEndingRow][randomEndingCol];
+
+
+    Stack *stack = createStack(rows * cols);
+
+    Cell *start = m->start;
+    start->visited = true;
+    push(stack, start);
+
+    while(!isEmpty(stack))
+    {
+        Cell *current = peek(stack);
+        int r = current->row;
+        int c = current->col;
+
+        // collect unvisited neighbors
+        Cell *neighbors[4];
+        int count = 0;
+
+        if (r > 0 && !m->grid[r - 1][c].visited)
+            neighbors[count++] = &m->grid[r - 1][c];
+
+        if (r < rows - 1 && !m->grid[r + 1][c].visited)
+            neighbors[count++] = &m->grid[r + 1][c];
+
+        if (c > 0 && !m->grid[r][c - 1].visited)
+            neighbors[count++] = &m->grid[r][c - 1];
+
+        if (c < cols - 1 && !m->grid[r][c + 1].visited)
+            neighbors[count++] = &m->grid[r][c + 1];
+
+        if (count > 0)
+        {
+            shuffle(neighbors, count);
+
+            Cell *next = neighbors[0];
+
+            removeWall(current, next);
+
+            next->visited = true;
+
+            push(stack, next);
+        } else pop(stack);
+    }
+
+
+    // randomize start and end
+    randomStartingRow = rand() % rows;
+    randomStartingCol = rand() % cols;
+
+    randomEndingRow = rand() % rows;
+    randomEndingCol = rand() % rows;
+
+    while (randomEndingRow == randomStartingRow || randomEndingCol == randomStartingCol)
+    {
+        randomEndingRow = rand() % rows;
+        randomEndingCol = rand() % cols;
+    }
+
+    m->start = &m->grid[randomStartingRow][randomStartingCol];
+    m->end = &m->grid[randomEndingRow][randomEndingCol];
+
+    m->start_r = randomStartingRow;
+    m->start_c = randomStartingCol;
+    m->end_r = randomEndingRow;
+    m->end_c = randomEndingCol;
+
+    freeStack(stack);
+
+    return m;
+}
+
+Maze* generateImperfectMazeRandomPositions(int rows, int cols)
 {
     if (rows < 2 || cols < 2)
     {
