@@ -28,7 +28,7 @@ bool mazeTraverseRecursive(Node* start)
     return false;
 }
 
-void mazeTraverse(Node *start)
+void mazeTraverseMultithreaded(Node* start)
 {
-    mazeTraverseRecursive(start);
+    
 }

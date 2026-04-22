@@ -8,10 +8,9 @@
 
 void main()
 {
+    // Maze *myMaze = generateMaze(6, 15);
+    Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15_random.bin");
 
-    // Maze *myMaze = generateMaze(8000, 8000);
-
-    Maze *myMaze = loadMazeBinary("../saved_mazes/maze1Kx1K.bin");
     Node* startingPoint = buildGraph(myMaze);
 
     if (!myMaze)
@@ -20,22 +19,25 @@ void main()
         exit(1);
     }
 
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
-    mazeTraverse(startingPoint);
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    // struct timespec start, end;
+    // clock_gettime(CLOCK_MONOTONIC, &start);
 
-    long seconds = end.tv_sec - start.tv_sec;
-    long nanoseconds = end.tv_nsec - start.tv_nsec;
-    long total_ns = seconds * 1000000000L + nanoseconds;
-    printf("Time taken: %ld\n", total_ns);
+    // mazeTraverseRecursive(startingPoint);
+    // mazeTraverseMultithreaded(startingPoint);
 
-    // printMaze(myMaze);
+    // clock_gettime(CLOCK_MONOTONIC, &end);
+
+    // long seconds = end.tv_sec - start.tv_sec;
+    // long nanoseconds = end.tv_nsec - start.tv_nsec;
+    // long total_ns = seconds * 1000000000L + nanoseconds;
+    // printf("Time taken: %ld\n", total_ns);
+
+    printMaze(myMaze);
 
     // don't do this:
     // printf("%d\n", startingPoint->down->visited);
 
-    // saveMazeBinary(myMaze, "maze8Kx8K.bin");
+    // saveMazeBinary(myMaze, "maze6x15_random.bin");
 
     freeMaze(myMaze);
 

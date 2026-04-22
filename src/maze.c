@@ -16,11 +16,30 @@ struct Cell {
 struct Maze {
     int rows, cols;
     struct Cell **grid;
+
     struct Cell *start;
     struct Cell *end;
 
+    int start_r, start_c;
+    int end_r, end_c;
+
     Node **nodes;
 };
+
+Cell createCell(int row, int col)
+{
+    Cell c;
+    c.row = row;
+    c.col = col;
+
+    c.up = true;
+    c.down = true;
+    c.left = true;
+    c.right = true;
+
+    c.visited = false;
+    return c;
+}
 
 void saveMazeBinary(Maze *m, const char *filename)
 {
@@ -31,15 +50,18 @@ void saveMazeBinary(Maze *m, const char *filename)
         return;
     }
 
-    int rows = m->rows;
-    int cols = m->cols;
+    fwrite(&m->rows, sizeof(int), 1, f);
+    fwrite(&m->cols, sizeof(int), 1, f);
 
-    fwrite(&rows, sizeof(int), 1, f);
-    fwrite(&cols, sizeof(int), 1, f);
+    // save start/end coordinates
+    fwrite(&m->start_r, sizeof(int), 1, f);
+    fwrite(&m->start_c, sizeof(int), 1, f);
+    fwrite(&m->end_r, sizeof(int), 1, f);
+    fwrite(&m->end_c, sizeof(int), 1, f);
 
-    for (int r = 0; r < rows; r++)
+    for (int r = 0; r < m->rows; r++)
     {
-        for (int c = 0; c < cols; c++)
+        for (int c = 0; c < m->cols; c++)
         {
             Cell *cell = &m->grid[r][c];
 
@@ -62,15 +84,36 @@ Maze *loadMazeBinary(const char *filename)
     if (!f)
         return NULL;
 
-    int rows, cols;
-    fread(&rows, sizeof(int), 1, f);
-    fread(&cols, sizeof(int), 1, f);
+    Maze *m = malloc(sizeof(Maze));
 
-    Maze *m = generateMaze(rows, cols); // reuse allocation
+    fread(&m->rows, sizeof(int), 1, f);
+    fread(&m->cols, sizeof(int), 1, f);
 
-    for (int r = 0; r < rows; r++)
+    fread(&m->start_r, sizeof(int), 1, f);
+    fread(&m->start_c, sizeof(int), 1, f);
+    fread(&m->end_r, sizeof(int), 1, f);
+    fread(&m->end_c, sizeof(int), 1, f);
+
+    // allocate grid (NO randomness here)
+    m->grid = malloc(m->rows * sizeof(Cell *));
+    for (int r = 0; r < m->rows; r++)
     {
-        for (int c = 0; c < cols; c++)
+        m->grid[r] = malloc(m->cols * sizeof(Cell));
+        for (int c = 0; c < m->cols; c++)
+        {
+            m->grid[r][c] = createCell(r, c);
+            m->grid[r][c].visited = false;
+        }
+    }
+
+    // restore start/end pointers from coordinates
+    m->start = &m->grid[m->start_r][m->start_c];
+    m->end = &m->grid[m->end_r][m->end_c];
+
+    // load walls
+    for (int r = 0; r < m->rows; r++)
+    {
+        for (int c = 0; c < m->cols; c++)
         {
             unsigned char walls;
             fread(&walls, sizeof(unsigned char), 1, f);
@@ -86,21 +129,6 @@ Maze *loadMazeBinary(const char *filename)
 
     fclose(f);
     return m;
-}
-
-Cell createCell(int row, int col)
-{
-    Cell c;
-    c.row = row;
-    c.col = col;
-
-    c.up = true;
-    c.down = true;
-    c.left = true;
-    c.right = true;
-
-    c.visited = false;
-    return c;
 }
 
 void createNodeGrid(Maze *m)
@@ -204,6 +232,12 @@ Node* buildGraph(Maze *m)
 
 Maze* generateMaze(int rows, int cols)
 {
+    if (rows < 2 || cols < 2)
+    {
+        printf("Maze dimension must be at least 2x2");
+        return NULL;
+    }
+
     Maze *m = malloc(sizeof(Maze));
     // define maze size
     m->rows = rows;
@@ -220,11 +254,29 @@ Maze* generateMaze(int rows, int cols)
         }
     }
 
-    // define start and end
-    m->start = &m->grid[0][0];
-    m->end = &m->grid[rows - 1][cols - 1];
-
     srand(time(NULL));
+
+    // define start and end
+    int randomStartingRow = rand() % rows;
+    int randomStartingCol = rand() % cols;
+
+    int randomEndingRow = rand() % rows;
+    int randomEndingCol = rand() % cols;
+
+    while (randomEndingRow == randomStartingRow || randomEndingCol == randomStartingCol)
+    {
+        randomEndingRow = rand() % rows;
+        randomEndingCol = rand() % cols;
+    }
+
+    // these are corner positions
+    // m->start = &m->grid[0][0];
+    // m->end = &m->grid[rows - 1][cols - 1];
+
+    // these are random start & end positions
+    m->start = &m->grid[randomStartingRow][randomStartingCol];
+    m->end = &m->grid[randomEndingRow][randomEndingCol];
+
 
     Stack *stack = createStack(rows * cols);
 
@@ -267,6 +319,27 @@ Maze* generateMaze(int rows, int cols)
             push(stack, next);
         } else pop(stack);
     }
+
+    // randomize start and end
+    randomStartingRow = rand() % rows;
+    randomStartingCol = rand() % cols;
+
+    randomEndingRow = rand() % rows;
+    randomEndingCol = rand() % rows;
+
+    while (randomEndingRow == randomStartingRow || randomEndingCol == randomStartingCol)
+    {
+        randomEndingRow = rand() % rows;
+        randomEndingCol = rand() % cols;
+    }
+
+    m->start = &m->grid[randomStartingRow][randomStartingCol];
+    m->end = &m->grid[randomEndingRow][randomEndingCol];
+
+    m->start_r = randomStartingRow;
+    m->start_c = randomStartingCol;
+    m->end_r = randomEndingRow;
+    m->end_c = randomEndingCol;
 
     freeStack(stack);
 
