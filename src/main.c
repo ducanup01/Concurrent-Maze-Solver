@@ -8,11 +8,11 @@
 
 int main()
 {
-    Maze *myMaze = generateMazeRandomPositions(6, 15);
+    // Maze *myMaze = generateMazeRandomPositions(6, 15);
     // Maze *myMaze = generateImperfectMazeRandomPositions(6, 15);
-    // Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15.bin");
+    Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15.bin");
 
-    // Node* startingPoint = buildGraph(myMaze);
+    Node* startingPoint = buildGraph(myMaze);
 
     if (!myMaze)
     {
@@ -34,11 +34,9 @@ int main()
     // printf("Time taken: %ld\n", total_ns);
 
     printMaze(myMaze);
+    printf("%p\n", startingPoint->start);
 
-    // don't do this:
-    // printf("%d\n", startingPoint->down->visited);
-
-    // saveMazeBinary(myMaze, "maze6x15_random_nonperfect.bin");
+    // saveMazeBinary(myMaze, "maze6x15.bin");
 
     freeMaze(myMaze);
 

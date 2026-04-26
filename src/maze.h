@@ -3,9 +3,8 @@
 
 #include <stdbool.h>
 
-typedef struct Maze Maze;
-typedef struct Cell Cell;
-typedef struct Node {
+typedef struct Node
+{
     struct Node *up;
     struct Node *down;
     struct Node *left;
@@ -19,6 +18,30 @@ typedef struct Node {
     bool isStartingNode;
 
 } Node;
+
+struct Maze
+{
+    int rows, cols;
+    struct Cell **grid;
+
+    struct Cell *start;
+    struct Cell *end;
+
+    int start_r, start_c;
+    int end_r, end_c;
+
+    Node **nodes;
+};
+typedef struct Maze Maze;
+struct Cell
+{
+    bool up, down, left, right;
+    int visited;
+    int row, col;
+
+    
+};
+typedef struct Cell Cell;
 
 Node *buildGraph(Maze *m);
 

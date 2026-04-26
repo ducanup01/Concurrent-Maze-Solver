@@ -7,24 +7,24 @@
 
 #define IDX(r, c, cols) ((r) * (cols) + (c))
 
-struct Cell {
-    bool up, down, left, right;
-    int visited;
-    int row, col;
-};
+// struct Cell {
+//     bool up, down, left, right;
+//     int visited;
+//     int row, col;
+// };
 
-struct Maze {
-    int rows, cols;
-    struct Cell **grid;
+// struct Maze {
+//     int rows, cols;
+//     struct Cell **grid;
 
-    struct Cell *start;
-    struct Cell *end;
+//     struct Cell *start;
+//     struct Cell *end;
 
-    int start_r, start_c;
-    int end_r, end_c;
+//     int start_r, start_c;
+//     int end_r, end_c;
 
-    Node **nodes;
-};
+//     Node **nodes;
+// };
 
 Cell createCell(int row, int col)
 {
