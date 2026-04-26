@@ -11,14 +11,12 @@ int main()
     // Maze *myMaze = generateMazeRandomPositions(6, 15);
     // Maze *myMaze = generateImperfectMazeRandomPositions(6, 15);
     Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15.bin");
-
-    Node* startingPoint = buildGraph(myMaze);
-
-    if (!myMaze)
-    {
+    if (!myMaze) {
         printf("Failed to load maze\n");
         exit(1);
     }
+    
+    Cell* startingPoint = myMaze->start;
 
     // struct timespec start, end;
     // clock_gettime(CLOCK_MONOTONIC, &start);
@@ -34,9 +32,10 @@ int main()
     // printf("Time taken: %ld\n", total_ns);
 
     printMaze(myMaze);
-    printf("%p\n", startingPoint->start);
 
     // saveMazeBinary(myMaze, "maze6x15.bin");
+
+    solveMazeConcurrently(startingPoint);
 
     freeMaze(myMaze);
 

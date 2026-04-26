@@ -7,37 +7,24 @@
 
 #define IDX(r, c, cols) ((r) * (cols) + (c))
 
-// struct Cell {
-//     bool up, down, left, right;
-//     int visited;
-//     int row, col;
-// };
-
-// struct Maze {
-//     int rows, cols;
-//     struct Cell **grid;
-
-//     struct Cell *start;
-//     struct Cell *end;
-
-//     int start_r, start_c;
-//     int end_r, end_c;
-
-//     Node **nodes;
-// };
-
 Cell createCell(int row, int col)
 {
     Cell c;
+
     c.row = row;
     c.col = col;
 
-    c.up = true;
-    c.down = true;
-    c.left = true;
-    c.right = true;
+    c.up = c.down = c.left = c.right = true;
+
+    c.n_up = c.n_down = c.n_left = c.n_right = NULL;
 
     c.visited = false;
+
+    c.content = ' ';
+
+    c.isStart = false;
+    c.isEnd = false;
+
     return c;
 }
 
@@ -106,10 +93,6 @@ Maze *loadMazeBinary(const char *filename)
         }
     }
 
-    // restore start/end pointers from coordinates
-    m->start = &m->grid[m->start_r][m->start_c];
-    m->end = &m->grid[m->end_r][m->end_c];
-
     // load walls
     for (int r = 0; r < m->rows; r++)
     {
@@ -127,107 +110,49 @@ Maze *loadMazeBinary(const char *filename)
         }
     }
 
+    // THEN restore start/end
+    m->start = &m->grid[m->start_r][m->start_c];
+    m->end = &m->grid[m->end_r][m->end_c];
+
+    m->start->isStart = true;
+    m->end->isEnd = true;
+
+    // ✅ NOW build graph
+    buildCellConnections(m);
+
     fclose(f);
     return m;
 }
 
-void createNodeGrid(Maze *m)
-{
-    int total = m->rows * m->cols;
-
-    m->nodes = malloc(total * sizeof(Node *));
-
-    for (int i = 0; i < total; i++)
-    {
-        m->nodes[i] = malloc(sizeof(Node));
-
-        m->nodes[i]->up = NULL;
-        m->nodes[i]->down = NULL;
-        m->nodes[i]->left = NULL;
-        m->nodes[i]->right = NULL;
-
-        m->nodes[i]->visited = false;
-        m->nodes[i]->isEndingNode = false;
-        m->nodes[i]->isStartingNode = false;
-    }
-}
-
-Node* buildGraph(Maze *m)
+void buildCellConnections(Maze *m)
 {
     int R = m->rows;
     int C = m->cols;
 
-    // allocate node grid
-    Node **nodes = malloc(R * C * sizeof(Node *));
-
-    for (int i = 0; i < R * C; i++)
-    {
-        nodes[i] = malloc(sizeof(Node));
-        nodes[i]->up = NULL;
-        nodes[i]->down = NULL;
-        nodes[i]->left = NULL;
-        nodes[i]->right = NULL;
-        nodes[i]->visited = false;
-        nodes[i]->isEndingNode = false;
-    }
-
-    Node *startNode = NULL;
-
-    // build connections
     for (int r = 0; r < R; r++)
     {
         for (int c = 0; c < C; c++)
         {
             Cell *cell = &m->grid[r][c];
-            Node *node = nodes[r * C + c];
 
-            node->row = r;
-            node->col = c;
+            cell->n_up = NULL;
+            cell->n_down = NULL;
+            cell->n_left = NULL;
+            cell->n_right = NULL;
 
-            // mark ending node
-            if (cell == m->end)
-                node->isEndingNode = true;
-
-            // save start node
-            if (cell == m->start)
-                startNode = node;
-                node->isStartingNode = true;
-
-            // UP
             if (!cell->up && r > 0)
-            {
-                Node *n = nodes[(r - 1) * C + c];
-                node->up = n;
-                n->down = node;
-            }
+                cell->n_up = &m->grid[r - 1][c];
 
-            // DOWN
             if (!cell->down && r < R - 1)
-            {
-                Node *n = nodes[(r + 1) * C + c];
-                node->down = n;
-                n->up = node;
-            }
+                cell->n_down = &m->grid[r + 1][c];
 
-            // LEFT
             if (!cell->left && c > 0)
-            {
-                Node *n = nodes[r * C + (c - 1)];
-                node->left = n;
-                n->right = node;
-            }
+                cell->n_left = &m->grid[r][c - 1];
 
-            // RIGHT
             if (!cell->right && c < C - 1)
-            {
-                Node *n = nodes[r * C + (c + 1)];
-                node->right = n;
-                n->left = node;
-            }
+                cell->n_right = &m->grid[r][c + 1];
         }
     }
-
-    return startNode;
 }
 
 void addRandomLoops(Maze *m, float probability)
@@ -351,7 +276,7 @@ Maze* generateMazeRandomPositions(int rows, int cols)
     randomStartingCol = rand() % cols;
 
     randomEndingRow = rand() % rows;
-    randomEndingCol = rand() % rows;
+    randomEndingCol = rand() % cols;
 
     while (randomEndingRow == randomStartingRow || randomEndingCol == randomStartingCol)
     {
@@ -366,6 +291,8 @@ Maze* generateMazeRandomPositions(int rows, int cols)
     m->start_c = randomStartingCol;
     m->end_r = randomEndingRow;
     m->end_c = randomEndingCol;
+
+    buildCellConnections(m);
 
     freeStack(stack);
 
@@ -486,6 +413,8 @@ Maze* generateImperfectMazeRandomPositions(int rows, int cols)
     m->end_r = randomEndingRow;
     m->end_c = randomEndingCol;
 
+    buildCellConnections(m);
+
     freeStack(stack);
 
     return m;
@@ -511,6 +440,7 @@ void printMaze(Maze *m)
 
             if (cell == m->start) content = 'S';
             else if (cell == m->end) content = 'E';
+            else content = cell->content;
 
             // left wall
             if (cell->left) printf("|");

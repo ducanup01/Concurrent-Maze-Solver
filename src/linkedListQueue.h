@@ -1,9 +1,10 @@
 // #include "linkedListQueue.h"
 #ifndef LINKEDLISTQUEUE
 #define LINKEDLISTQUEUE
+#include "maze.h"
 
 typedef struct LinkedList {
-    int data;
+    Cell* cell;
     struct LinkedList *next;
 } LinkedList;
 
@@ -19,8 +20,8 @@ Queue* createQueue();
 
 bool isQueueEmpty(Queue* q);
 
-void enqueue(int data, Queue* q);
+void enqueue(Cell* cell, Queue* q);
 
-int dequeue(Queue* q);
+Cell* dequeue(Queue *q);
 
 #endif

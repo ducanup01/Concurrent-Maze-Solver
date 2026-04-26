@@ -3,30 +3,11 @@
 #include <stdbool.h>
 #include "linkedListQueue.h"
 
-// typedef struct LinkedList {
-//     int data;
-//     struct LinkedList *next;
-// } LinkedList;
-
-// typedef struct {
-//     LinkedList *head;
-//     LinkedList *rear;
-//     int elementCount;
-// } Queue;
-
-void printQueue(Queue* q)
-{
-    LinkedList *current = q->head;
-    while (current != NULL)
-    {
-        printf("%d\n", current->data);
-        current = current->next;
-    }
-}
-
 Queue* createQueue()
 {
     Queue* q = malloc(sizeof(Queue));
+    if (!q) return NULL;
+
     q->head = NULL;
     q->rear = NULL;
     q->elementCount = 0;
@@ -35,42 +16,46 @@ Queue* createQueue()
 
 bool isQueueEmpty(Queue* q)
 {
-    if (q->elementCount == 0) return true;
-    return false;
+    return q->elementCount == 0;
 }
 
-void enqueue(int data, Queue* q)
+void enqueue(Cell* cell, Queue *q)
 {
-    LinkedList* newNode = malloc(sizeof(LinkedList));
-    newNode->data = data;
+    LinkedList *newNode = malloc(sizeof(LinkedList));
+    if (!newNode) perror("Malloc failed");
+
+    newNode->cell = cell;
     newNode->next = NULL;
 
     if (q->head == NULL)
     {
         q->head = newNode;
         q->rear = newNode;
-    } else {
+    }
+    else
+    {
         q->rear->next = newNode;
         q->rear = newNode;
     }
     q->elementCount++;
 }
 
-int dequeue(Queue* q)
+Cell* dequeue(Queue *q)
 {
-    if (isEmpty(q)) return NULL;
+    if (isQueueEmpty(q))
+        return NULL;
 
-    LinkedList* temp = q->head;
-    int data = q->head->data;
+    LinkedList *temp = q->head;
+    Cell* cell = q->head->cell;
 
     q->head = q->head->next;
 
-    if (q->head == NULL) q->rear = NULL;
+    if (q->head == NULL)
+        q->rear = NULL;
 
     q->elementCount--;
 
     free(temp);
 
-    return data;
-
+    return cell;
 }
