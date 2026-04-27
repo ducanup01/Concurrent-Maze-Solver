@@ -38,26 +38,26 @@ typedef struct Cell
     int row, col;
 
     // walls
-    bool up, down, left, right;
+    bool n_up, n_down, n_left, n_right;
 
     // graph links (neighbors)
-    struct Cell *n_up;
-    struct Cell *n_down;
-    struct Cell *n_left;
-    struct Cell *n_right;
+    struct Cell *up;
+    struct Cell *down;
+    struct Cell *left;
+    struct Cell *right;
 
     char content;
 
     // traversal state
     bool visited;
-
+    int visitedBy;
     bool isStart;
     bool isEnd;
 
 } Cell;
 
 // Node *buildGraph(Maze *m);
-
+void initThreadColors();
 Maze* generateMazeRandomPositions(int rows, int cols);
 Maze* generateImperfectMazeRandomPositions(int rows, int cols);
 void freeMaze(Maze *m);

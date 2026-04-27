@@ -21,6 +21,11 @@ bool isQueueEmpty(Queue* q)
 
 void enqueue(Cell* cell, Queue *q)
 {
+    if (cell == NULL)
+    {
+        printf("empty cell\n");
+        return;
+    }
     LinkedList *newNode = malloc(sizeof(LinkedList));
     if (!newNode) perror("Malloc failed");
 

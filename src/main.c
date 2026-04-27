@@ -6,17 +6,30 @@
 #include "stack.h"
 #include <time.h>
 
+int number_of_threads_input;
+int input_number_of_rows;
+int input_number_of_cols;
+
+extern Maze* myMaze;
+
 int main()
 {
-    // Maze *myMaze = generateMazeRandomPositions(6, 15);
-    // Maze *myMaze = generateImperfectMazeRandomPositions(6, 15);
-    Maze *myMaze = loadMazeBinary("../saved_mazes/maze6x15.bin");
+    initThreadColors();
+    
+    printf("Choose number of rows: ");
+    scanf("%d", &input_number_of_rows);
+
+    printf("Choose number of columns: ");
+    scanf("%d", &input_number_of_cols);
+
+    myMaze = generateMazeRandomPositions(input_number_of_rows, input_number_of_cols);
+    // myMaze = generateMazeRandomPositions(40, 120);
+    // myMaze = generateImperfectMazeRandomPositions(6, 30);
+    // myMaze = loadMazeBinary("../saved_mazes/maze6x15.bin");
     if (!myMaze) {
         printf("Failed to load maze\n");
         exit(1);
     }
-    
-    Cell* startingPoint = myMaze->start;
 
     // struct timespec start, end;
     // clock_gettime(CLOCK_MONOTONIC, &start);
@@ -33,10 +46,12 @@ int main()
 
     printMaze(myMaze);
 
+    printf("Choose number of threads (1-9): ");
+    scanf("%d", &number_of_threads_input);
+
+    solveMazeConcurrently(myMaze);
+    
     // saveMazeBinary(myMaze, "maze6x15.bin");
-
-    solveMazeConcurrently(startingPoint);
-
     freeMaze(myMaze);
 
     return 0;

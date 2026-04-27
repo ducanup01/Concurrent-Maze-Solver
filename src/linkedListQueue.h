@@ -14,8 +14,6 @@ typedef struct {
     int elementCount;
 } Queue;
 
-void printQueue(Queue* q);
-
 Queue* createQueue();
 
 bool isQueueEmpty(Queue* q);

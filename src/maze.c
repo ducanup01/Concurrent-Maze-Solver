@@ -7,6 +7,66 @@
 
 #define IDX(r, c, cols) ((r) * (cols) + (c))
 
+// const char *threadColors[10] = {
+//     "\033[41m",  // red
+//     "\033[42m",  // green
+//     "\033[43m",  // yellow
+//     "\033[44m",  // blue
+//     "\033[45m",  // magenta
+//     "\033[46m",  // cyan
+//     "\033[101m", // bright red
+//     "\033[102m", // bright green
+//     "\033[104m", // bright blue
+//     "\033[105m"  // bright magenta
+// };
+
+const char *threadColors[256];
+
+void initThreadColors()
+{
+    static char buffers[256][20];
+
+    int idx = 0;
+
+    // 1. Bright standard colors (0–15, skip darks manually if you want)
+    int bright_base[] = {
+        1, 2, 3, 4, 5, 6, // skip 0 (black)
+        9, 10, 11, 12, 13, 14, 15};
+
+    for (int i = 0; i < sizeof(bright_base) / sizeof(bright_base[0]) && idx < 256; i++)
+    {
+        snprintf(buffers[idx], sizeof(buffers[idx]),
+                 "\033[48;5;%dm", bright_base[i]);
+        threadColors[idx++] = buffers[idx];
+    }
+
+    // 2. Skip grayscale entirely (232–255)
+    // 3. Use only "bright-ish" cube colors (avoid low RGB combos)
+    for (int r = 3; r < 6 && idx < 256; r++)
+    {
+        for (int g = 3; g < 6 && idx < 256; g++)
+        {
+            for (int b = 3; b < 6 && idx < 256; b++)
+            {
+                int color = 16 + (36 * r) + (6 * g) + b;
+
+                snprintf(buffers[idx], sizeof(buffers[idx]),
+                         "\033[48;5;%dm", color);
+                threadColors[idx++] = buffers[idx];
+            }
+        }
+    }
+
+    // Fill remaining slots (if any) with safe fallback bright colors
+    while (idx < 256)
+    {
+        int fallback = 9 + (idx % 7); // cycle bright colors
+        snprintf(buffers[idx], sizeof(buffers[idx]),
+                 "\033[48;5;%dm", fallback);
+        threadColors[idx++] = buffers[idx];
+    }
+}
+
 Cell createCell(int row, int col)
 {
     Cell c;
@@ -14,11 +74,12 @@ Cell createCell(int row, int col)
     c.row = row;
     c.col = col;
 
-    c.up = c.down = c.left = c.right = true;
+    c.n_up = c.n_down = c.n_left = c.n_right = true;
 
-    c.n_up = c.n_down = c.n_left = c.n_right = NULL;
+    c.up = c.down = c.left = c.right = NULL;
 
     c.visited = false;
+    c.visitedBy = -1;
 
     c.content = ' ';
 
@@ -53,10 +114,10 @@ void saveMazeBinary(Maze *m, const char *filename)
             Cell *cell = &m->grid[r][c];
 
             unsigned char walls = 0;
-            walls |= cell->up << 0;
-            walls |= cell->down << 1;
-            walls |= cell->left << 2;
-            walls |= cell->right << 3;
+            walls |= cell->n_up << 0;
+            walls |= cell->n_down << 1;
+            walls |= cell->n_left << 2;
+            walls |= cell->n_right << 3;
 
             fwrite(&walls, sizeof(unsigned char), 1, f);
         }
@@ -103,10 +164,10 @@ Maze *loadMazeBinary(const char *filename)
 
             Cell *cell = &m->grid[r][c];
 
-            cell->up = (walls >> 0) & 1;
-            cell->down = (walls >> 1) & 1;
-            cell->left = (walls >> 2) & 1;
-            cell->right = (walls >> 3) & 1;
+            cell->n_up = (walls >> 0) & 1;
+            cell->n_down = (walls >> 1) & 1;
+            cell->n_left = (walls >> 2) & 1;
+            cell->n_right = (walls >> 3) & 1;
         }
     }
 
@@ -135,22 +196,22 @@ void buildCellConnections(Maze *m)
         {
             Cell *cell = &m->grid[r][c];
 
-            cell->n_up = NULL;
-            cell->n_down = NULL;
-            cell->n_left = NULL;
-            cell->n_right = NULL;
+            cell->up = NULL;
+            cell->down = NULL;
+            cell->left = NULL;
+            cell->right = NULL;
 
-            if (!cell->up && r > 0)
-                cell->n_up = &m->grid[r - 1][c];
+            if (!cell->n_up && r > 0)
+                cell->up = &m->grid[r - 1][c];
 
-            if (!cell->down && r < R - 1)
-                cell->n_down = &m->grid[r + 1][c];
+            if (!cell->n_down && r < R - 1)
+                cell->down = &m->grid[r + 1][c];
 
-            if (!cell->left && c > 0)
-                cell->n_left = &m->grid[r][c - 1];
+            if (!cell->n_left && c > 0)
+                cell->left = &m->grid[r][c - 1];
 
-            if (!cell->right && c < C - 1)
-                cell->n_right = &m->grid[r][c + 1];
+            if (!cell->n_right && c < C - 1)
+                cell->right = &m->grid[r][c + 1];
         }
     }
 }
@@ -163,18 +224,18 @@ void addRandomLoops(Maze *m, float probability)
         {
             Cell *cell = &m->grid[r][c];
 
-            // remove RIGHT wall randomly
+            // remove n_right wall randomly
             if (c < m->cols - 1 && ((float)rand() / RAND_MAX) < probability)
             {
-                cell->right = false;
-                m->grid[r][c + 1].left = false;
+                cell->n_right = false;
+                m->grid[r][c + 1].n_left = false;
             }
 
-            // remove DOWN wall randomly
+            // remove n_down wall randomly
             if (r < m->rows - 1 && ((float)rand() / RAND_MAX) < probability)
             {
-                cell->down = false;
-                m->grid[r + 1][c].up = false;
+                cell->n_down = false;
+                m->grid[r + 1][c].n_up = false;
             }
         }
     }
@@ -201,6 +262,8 @@ Maze* generateMazeRandomPositions(int rows, int cols)
         for (int c = 0; c < cols; c++)
         {
             m->grid[r][c] = createCell(r, c);
+            m->grid[r][c].visited = false;
+
         }
     }
 
@@ -287,6 +350,9 @@ Maze* generateMazeRandomPositions(int rows, int cols)
     m->start = &m->grid[randomStartingRow][randomStartingCol];
     m->end = &m->grid[randomEndingRow][randomEndingCol];
 
+    m->start->isStart = true;
+    m->end->isEnd = true;
+
     m->start_r = randomStartingRow;
     m->start_c = randomStartingCol;
     m->end_r = randomEndingRow;
@@ -295,6 +361,14 @@ Maze* generateMazeRandomPositions(int rows, int cols)
     buildCellConnections(m);
 
     freeStack(stack);
+
+    for (int r = 0; r < m->rows; r++)
+    {
+        for (int c = 0; c < m->cols; c++)
+        {
+            m->grid[r][c].visited = false;
+        }
+    }
 
     return m;
 }
@@ -397,7 +471,7 @@ Maze* generateImperfectMazeRandomPositions(int rows, int cols)
     randomStartingCol = rand() % cols;
 
     randomEndingRow = rand() % rows;
-    randomEndingCol = rand() % rows;
+    randomEndingCol = rand() % cols;
 
     while (randomEndingRow == randomStartingRow || randomEndingCol == randomStartingCol)
     {
@@ -408,6 +482,9 @@ Maze* generateImperfectMazeRandomPositions(int rows, int cols)
     m->start = &m->grid[randomStartingRow][randomStartingCol];
     m->end = &m->grid[randomEndingRow][randomEndingCol];
 
+    m->start->isStart = true;
+    m->end->isEnd = true;
+
     m->start_r = randomStartingRow;
     m->start_c = randomStartingCol;
     m->end_r = randomEndingRow;
@@ -417,21 +494,35 @@ Maze* generateImperfectMazeRandomPositions(int rows, int cols)
 
     freeStack(stack);
 
+    for (int r = 0; r < m->rows; r++)
+    {
+        for (int c = 0; c < m->cols; c++)
+        {
+            m->grid[r][c].visited = false;
+        }
+    }
+
     return m;
 }
 
 void printMaze(Maze *m)
 {
+    printf("\033[H");
+
     for (int r = 0; r < m->rows; r++)
     {
+        printf("\033[2K");
+        
         // print top wall
         for (int c = 0; c < m->cols; c++)
         {
-            if (m->grid[r][c].up) printf("+---");
+            if (m->grid[r][c].n_up) printf("+---");
             else printf("+   ");
         } printf("+\n");
 
-        // print cells + left wall
+        printf("\033[2K");
+
+        // print cells + n_left wall
         for (int c = 0; c < m->cols; c++)
         {
             // cell
@@ -442,19 +533,57 @@ void printMaze(Maze *m)
             else if (cell == m->end) content = 'E';
             else content = cell->content;
 
-            // left wall
-            if (cell->left) printf("|");
+            // n_left wall
+            if (cell->n_left) printf("|");
             else printf(" ");
 
-            printf(" %c ", content);
+            //printing logic
+
+            if (cell == m->start)
+            {
+                if (cell->visitedBy >= 0)
+                {
+                    int id = cell->visitedBy;
+                    printf(" %sS\033[0m ", threadColors[id]); // colored S
+                }
+                else
+                {
+                    printf(" S "); // default before claimed
+                }
+            }
+            else if (cell == m->end)
+            {
+                if (cell->visitedBy >= 0)
+                {
+                    int id = cell->visitedBy;
+                    printf(" %sE\033[0m ", threadColors[id]); // colored E
+                }
+                else
+                {
+                    printf(" E "); // default before found
+                }
+            }
+            else if (cell->visited)
+            {
+                int id = cell->visitedBy;
+                printf(" %s \033[0m ", threadColors[id]); // colored block
+            }
+            else
+            {
+                printf("   ");
+            }
         }
-        // rightmost wall
+        // n_rightmost wall
         printf("|\n");
     }
+
+    printf("\033[2K");
 
     for (int c = 0; c < m->cols; c++) printf("+---");
 
     printf("+\n");
+
+    fflush(stdout);
 }
 
 void freeMaze(Maze *m)
@@ -483,8 +612,8 @@ static void removeWall(Cell *a, Cell *b)
     int dr = a->row - b->row;
     int dc = a->col - b->col;
 
-    if (dr == 1) {a->up = false; b->down = false;}
-    else if (dr == -1) {a->down = false; b->up = false;}
-    else if (dc == 1) {a->left = false; b->right = false;}
-    else if (dc == -1) {a->right = false; b->left = false;}
+    if (dr == 1) {a->n_up = false; b->n_down = false;}
+    else if (dr == -1) {a->n_down = false; b->n_up = false;}
+    else if (dc == 1) {a->n_left = false; b->n_right = false;}
+    else if (dc == -1) {a->n_right = false; b->n_left = false;}
 }
