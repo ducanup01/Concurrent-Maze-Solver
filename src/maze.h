@@ -50,6 +50,7 @@ typedef struct Cell
 
     // traversal state
     bool visited;
+    int distanceFromStart;
     int visitedBy;
     bool isStart;
     bool isEnd;
@@ -62,6 +63,7 @@ Maze* generateMazeRandomPositions(int rows, int cols);
 Maze* generateImperfectMazeRandomPositions(int rows, int cols);
 void freeMaze(Maze *m);
 void printMaze(Maze *m);
+void displayShortestPath(Maze *m);
 
 // Cell *maze_get_start(Maze *m);
 // int maze_get_neighbors(Maze *m, Cell *c, Cell *out[4]);

@@ -2,68 +2,126 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
+#include <unistd.h>
 #include "maze.h"
 #include "stack.h"
+#include "linkedListQueue.h"
 
 #define IDX(r, c, cols) ((r) * (cols) + (c))
 
-// const char *threadColors[10] = {
-//     "\033[41m",  // red
-//     "\033[42m",  // green
-//     "\033[43m",  // yellow
-//     "\033[44m",  // blue
-//     "\033[45m",  // magenta
-//     "\033[46m",  // cyan
-//     "\033[101m", // bright red
-//     "\033[102m", // bright green
-//     "\033[104m", // bright blue
-//     "\033[105m"  // bright magenta
-// };
+#define TIME_TO_DISPLAY_PATH 2500000
 
-const char *threadColors[256];
+extern Maze *myMaze;
+
+const char *threadColors[100];
 
 void initThreadColors()
 {
-    static char buffers[256][20];
-
-    int idx = 0;
-
-    // 1. Bright standard colors (0–15, skip darks manually if you want)
-    int bright_base[] = {
-        1, 2, 3, 4, 5, 6, // skip 0 (black)
-        9, 10, 11, 12, 13, 14, 15};
-
-    for (int i = 0; i < sizeof(bright_base) / sizeof(bright_base[0]) && idx < 256; i++)
+    typedef struct
     {
-        snprintf(buffers[idx], sizeof(buffers[idx]),
-                 "\033[48;5;%dm", bright_base[i]);
-        threadColors[idx++] = buffers[idx];
-    }
+        int r, g, b;
+        char code[20];
+    } Color;
 
-    // 2. Skip grayscale entirely (232–255)
-    // 3. Use only "bright-ish" cube colors (avoid low RGB combos)
-    for (int r = 3; r < 6 && idx < 256; r++)
+    static Color colors[216]; // max possible from 6x6x6
+    static Color ordered[100];
+    bool used[216] = {0};
+
+    int count = 0;
+
+    // 1. Generate filtered colors (avoid red/green dominant, avoid dark)
+    for (int r = 0; r < 6; r++)
     {
-        for (int g = 3; g < 6 && idx < 256; g++)
+        for (int g = 0; g < 6; g++)
         {
-            for (int b = 3; b < 6 && idx < 256; b++)
+            for (int b = 0; b < 6; b++)
             {
-                int color = 16 + (36 * r) + (6 * g) + b;
+                int max = r;
+                if (g > max)
+                    max = g;
+                if (b > max)
+                    max = b;
 
-                snprintf(buffers[idx], sizeof(buffers[idx]),
+                // skip dark colors
+                if (max < 3)
+                    continue;
+
+                // skip red-dominant
+                if (r > g + 1 && r > b + 1)
+                    continue;
+
+                // skip green-dominant
+                if (g > r + 1 && g > b + 1)
+                    continue;
+
+                int color = 16 + 36 * r + 6 * g + b;
+
+                snprintf(colors[count].code, sizeof(colors[count].code),
                          "\033[48;5;%dm", color);
-                threadColors[idx++] = buffers[idx];
+
+                colors[count].r = r;
+                colors[count].g = g;
+                colors[count].b = b;
+
+                count++;
             }
         }
     }
 
-    // Fill remaining slots (if any) with safe fallback bright colors
-    while (idx < 256)
+    if (count == 0)
+        return;
+
+    // 2. Greedy max-distance ordering
+    ordered[0] = colors[0];
+    used[0] = true;
+
+    int finalCount = (count < 100) ? count : 100;
+
+    for (int i = 1; i < finalCount; i++)
     {
-        int fallback = 9 + (idx % 7); // cycle bright colors
-        snprintf(buffers[idx], sizeof(buffers[idx]),
-                 "\033[48;5;%dm", fallback);
-        threadColors[idx++] = buffers[idx];
+        int bestIdx = -1;
+        int bestScore = -1;
+
+        for (int j = 0; j < count; j++)
+        {
+            if (used[j])
+                continue;
+
+            int minDist = 1000000;
+
+            for (int k = 0; k < i; k++)
+            {
+                int dr = colors[j].r - ordered[k].r;
+                int dg = colors[j].g - ordered[k].g;
+                int db = colors[j].b - ordered[k].b;
+
+                int dist = dr * dr + dg * dg + db * db;
+
+                if (dist < minDist)
+                    minDist = dist;
+            }
+
+            if (minDist > bestScore)
+            {
+                bestScore = minDist;
+                bestIdx = j;
+            }
+        }
+
+        ordered[i] = colors[bestIdx];
+        used[bestIdx] = true;
+    }
+
+    // 3. Assign to threadColors
+    for (int i = 0; i < finalCount; i++)
+    {
+        threadColors[i] = ordered[i].code;
+    }
+
+    // 4. Fallback fill if < 100
+    for (int i = finalCount; i < 100; i++)
+    {
+        threadColors[i] = "\033[48;5;12m"; // blue fallback
     }
 }
 
@@ -79,6 +137,7 @@ Cell createCell(int row, int col)
     c.up = c.down = c.left = c.right = NULL;
 
     c.visited = false;
+    c.distanceFromStart = 0;
     c.visitedBy = -1;
 
     c.content = ' ';
@@ -516,8 +575,8 @@ void printMaze(Maze *m)
         // print top wall
         for (int c = 0; c < m->cols; c++)
         {
-            if (m->grid[r][c].n_up) printf("+---");
-            else printf("+   ");
+            if (m->grid[r][c].n_up) printf("+-----");
+            else printf("+     ");
         } printf("+\n");
 
         printf("\033[2K");
@@ -541,36 +600,38 @@ void printMaze(Maze *m)
 
             if (cell == m->start)
             {
-                if (cell->visitedBy >= 0)
-                {
-                    int id = cell->visitedBy;
-                    printf(" %sS\033[0m ", threadColors[id]); // colored S
-                }
-                else
-                {
-                    printf(" S "); // default before claimed
-                }
+                // if (cell->visitedBy >= 0)
+                // {
+                //     int id = cell->visitedBy;
+                //     printf(" %s S \033[0m ", threadColors[id]); // colored S
+                // }
+                // else
+                // {
+                // } if anything move this down
+                printf(" \033[48;5;46m S \033[0m "); // default before claimed
             }
             else if (cell == m->end)
             {
-                if (cell->visitedBy >= 0)
-                {
-                    int id = cell->visitedBy;
-                    printf(" %sE\033[0m ", threadColors[id]); // colored E
-                }
-                else
-                {
-                    printf(" E "); // default before found
-                }
+                // if (cell->visitedBy >= 0)
+                // {
+                //     int id = cell->visitedBy;
+                //     printf(" %s E \033[0m ", threadColors[id]); // colored E
+                // }
+                // else
+                // {
+                // } if anything move this down
+                printf(" \033[48;5;196m E \033[0m "); // default before found
             }
             else if (cell->visited)
             {
                 int id = cell->visitedBy;
-                printf(" %s \033[0m ", threadColors[id]); // colored block
+                if (id >= 0) printf(" %s   \033[0m ", threadColors[id]); // colored block
+                else if (id == -2) printf(" \033[48;5;196m   \033[0m "); // final path here
+                else printf(" %s   \033[0m ", threadColors[id]); // colored block
             }
             else
             {
-                printf("   ");
+                printf("     ");
             }
         }
         // n_rightmost wall
@@ -579,11 +640,66 @@ void printMaze(Maze *m)
 
     printf("\033[2K");
 
-    for (int c = 0; c < m->cols; c++) printf("+---");
+    for (int c = 0; c < m->cols; c++) printf("+-----");
 
     printf("+\n");
 
     fflush(stdout);
+}
+
+void displayShortestPath(Maze *m)
+{
+    Stack* stackOfCell = createStack(-1);
+    Queue *q = createQueue(); // you already have this
+
+    bool visitedAgain[4444] = {0}; // or use a flag in Cell
+
+    enqueue(m->end, q);
+    visitedAgain[m->end->row * m->cols + m->end->col] = true;
+
+    int pathLength = m->end->distanceFromStart;
+
+    while (!isQueueEmpty(q))
+    {
+        Cell *current = dequeue(q);
+        push(stackOfCell, current);
+
+        int target = current->distanceFromStart - 1;
+
+        if (target < 0)
+            continue;
+
+        // check all neighbors
+        Cell *neighbors[4] = {
+            current->up,
+            current->down,
+            current->left,
+            current->right};
+
+        for (int i = 0; i < 4; i++)
+        {
+            Cell *n = neighbors[i];
+            if (!n)
+                continue;
+
+            int idx = n->row * m->cols + n->col;
+
+            if (!visitedAgain[idx] &&
+                n->distanceFromStart == target)
+            {
+                enqueue(n, q);
+                visitedAgain[idx] = true;
+            }
+        }
+    }
+
+    while (!isEmpty(stackOfCell)) {
+        Cell* n = pop(stackOfCell);
+        n->visitedBy = -2;
+        printMaze(myMaze);
+        usleep(TIME_TO_DISPLAY_PATH / pathLength); // display whole path in 3s regardless of length
+    }
+    printf("\n");
 }
 
 void freeMaze(Maze *m)
