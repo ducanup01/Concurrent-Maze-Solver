@@ -40,39 +40,39 @@ int main()
         break;
 
     case 2:
-        myMaze = loadMazeBinary("../saved_mazes/maze10x15.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze10x15.bin");
         break;
 
     case 3:
-        myMaze = loadMazeBinary("../saved_mazes/maze15x25.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze15x25.bin");
         break;
 
     case 4:
-        myMaze = loadMazeBinary("../saved_mazes/maze18x30.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze18x30.bin");
         break;
 
     case 5:
-        myMaze = loadMazeBinary("../saved_mazes/maze22x35.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze22x35.bin");
         break;
 
     case 6:
-        myMaze = loadMazeBinary("../saved_mazes/maze25x45.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze25x45.bin");
         break;
 
     case 7:
-        myMaze = loadMazeBinary("../saved_mazes/maze30x55.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze30x55.bin");
         break;
 
     case 8:
-        myMaze = loadMazeBinary("../saved_mazes/maze35x65.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze35x65.bin");
         break;
 
     case 9:
-        myMaze = loadMazeBinary("../saved_mazes/maze40x75.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze40x75.bin");
         break;
 
     case 10:
-        myMaze = loadMazeBinary("../saved_mazes/maze50x85.bin");
+        myMaze = loadMazeBinary("src/saved_mazes/maze50x85.bin");
         break;
 
     case 11:
