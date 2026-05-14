@@ -6,6 +6,7 @@
 #include "stack.h"
 #include <time.h>
 #include "menu.h"
+#include <string.h>
 
 int number_of_threads_input;
 int input_number_of_rows;
@@ -13,70 +14,86 @@ int input_number_of_cols;
 
 extern Maze* myMaze;
 
+// Helper function to save custom mazes with user-defined names
+void promptToSaveCustomMaze(Maze *m)
+{
+    char response;
+    printf("\nSave this maze? (y/n): ");
+    scanf(" %c", &response);
+    
+    if (response == 'y' || response == 'Y') {
+        char mazeName[64];
+        printf("Enter maze name (no spaces, e.g., 'my_maze'): ");
+        scanf("%63s", mazeName);
+        
+        // Validate name
+        if (strlen(mazeName) == 0) {
+            printf("Invalid name. Skipping save.\n");
+            return;
+        }
+        
+        char filepath[256];
+        snprintf(filepath, sizeof(filepath), "src/saved_mazes/%s.bin", mazeName);
+        
+        saveMazeBinary(m, filepath);
+        printf("✓ Maze saved as '%s.bin' - will appear in menu next time you run!\n", mazeName);
+    }
+}
+
 int main()
 {
     
     initThreadColors();
 
-    int choice = runMenu();
+    /* 
+    CUSTOM MAZE FEATURE:
+    - When you generate a random maze (options 0 or 1), you can save it with a custom name
+    - Saved mazes are stored in src/saved_mazes/ as .bin files
+    - These will automatically appear in the menu next time you run the program!
+    */
+
+    MenuResult result = runDynamicMenu();
+    int choice = result.choice;
     printf("\033[H\033[J");
 
-    switch (choice)
-    {
-    case 0: // Randomize maze
+    // Handle menu choices
+    if (choice == 0) {
+        // Randomize maze
         printf("Enter rows: ");
         scanf("%d", &input_number_of_rows);
         printf("Enter cols: ");
         scanf("%d", &input_number_of_cols);
         myMaze = generateMazeRandomPositions(input_number_of_rows, input_number_of_cols);
-        break;
-
-    case 1: // Randomize imperfect maze
+        if (myMaze) {
+            printf("\033[H\033[J");
+            printMaze(myMaze);
+            promptToSaveCustomMaze(myMaze);
+        }
+    }
+    else if (choice == 1) {
+        // Randomize imperfect maze
         printf("Enter rows: ");
         scanf("%d", &input_number_of_rows);
         printf("Enter cols: ");
         scanf("%d", &input_number_of_cols);
         myMaze = generateImperfectMazeRandomPositions(input_number_of_rows, input_number_of_cols);
-        break;
-
-    case 2:
-        myMaze = loadMazeBinary("src/saved_mazes/maze10x15.bin");
-        break;
-
-    case 3:
-        myMaze = loadMazeBinary("src/saved_mazes/maze15x25.bin");
-        break;
-
-    case 4:
-        myMaze = loadMazeBinary("src/saved_mazes/maze18x30.bin");
-        break;
-
-    case 5:
-        myMaze = loadMazeBinary("src/saved_mazes/maze22x35.bin");
-        break;
-
-    case 6:
-        myMaze = loadMazeBinary("src/saved_mazes/maze25x45.bin");
-        break;
-
-    case 7:
-        myMaze = loadMazeBinary("src/saved_mazes/maze30x55.bin");
-        break;
-
-    case 8:
-        myMaze = loadMazeBinary("src/saved_mazes/maze35x65.bin");
-        break;
-
-    case 9:
-        myMaze = loadMazeBinary("src/saved_mazes/maze40x75.bin");
-        break;
-
-    case 10:
-        myMaze = loadMazeBinary("src/saved_mazes/maze50x85.bin");
-        break;
-
-    case 11:
+        if (myMaze) {
+            printf("\033[H\033[J");
+            printMaze(myMaze);
+            promptToSaveCustomMaze(myMaze);
+        }
+    }
+    else if (choice == result.totalOptions - 1) {
+        // Exit (last option)
         exit(0);
+    }
+    else if (choice >= 2 && choice < result.totalOptions - 1) {
+        // Load a saved maze
+        myMaze = loadMazeBinary(result.mazeFile);
+        if (myMaze) {
+            printf("\033[H\033[J");
+            printMaze(myMaze);
+        }
     }
 
     if (!myMaze) {
@@ -85,8 +102,6 @@ int main()
     }
 
     struct timespec start, end;
-
-    printMaze(myMaze);
 
     printf("Choose number of threads (1-100): ");
     scanf("%d", &number_of_threads_input);

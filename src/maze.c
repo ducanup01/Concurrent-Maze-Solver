@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <time.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <string.h>
 #include "maze.h"
 #include "stack.h"
 #include "linkedListQueue.h"
@@ -732,4 +734,46 @@ static void removeWall(Cell *a, Cell *b)
     else if (dr == -1) {a->n_down = false; b->n_up = false;}
     else if (dc == 1) {a->n_left = false; b->n_right = false;}
     else if (dc == -1) {a->n_right = false; b->n_left = false;}
+}
+
+// Scan src/saved_mazes/ directory and return list of available maze files
+char **getAvailableMazes(int *count)
+{
+    *count = 0;
+    char **mazes = malloc(256 * sizeof(char *));
+    if (!mazes) return NULL;
+
+    DIR *dir = opendir("src/saved_mazes");
+    if (!dir) {
+        perror("Failed to open src/saved_mazes directory");
+        free(mazes);
+        return NULL;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        // Filter for .bin files
+        if (strstr(entry->d_name, ".bin") != NULL) {
+            int len = strlen(entry->d_name);
+            char *filepath = malloc(512);
+            snprintf(filepath, 512, "src/saved_mazes/%s", entry->d_name);
+            mazes[*count] = filepath;
+            (*count)++;
+            
+            if (*count >= 256) break;
+        }
+    }
+
+    closedir(dir);
+    return mazes;
+}
+
+// Free memory from getAvailableMazes
+void freeAvailableMazes(char **mazes, int count)
+{
+    if (!mazes) return;
+    for (int i = 0; i < count; i++) {
+        free(mazes[i]);
+    }
+    free(mazes);
 }

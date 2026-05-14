@@ -71,6 +71,8 @@ void displayShortestPath(Maze *m);
 void buildCellConnections(Maze *m);
 void saveMazeBinary(Maze *m, const char *filename);
 Maze *loadMazeBinary(const char *filename);
+char **getAvailableMazes(int *count);
+void freeAvailableMazes(char **mazes, int count);
 
 static void shuffle(Cell **arr, int n);
 static void removeWall(Cell *a, Cell *b);
