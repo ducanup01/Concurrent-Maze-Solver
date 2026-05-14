@@ -127,6 +127,11 @@ int main()
 
     // saveMazeBinary(myMaze, "maze50x85.bin");
     freeMaze(myMaze);
+    
+    // Clean up dynamically allocated menu filename
+    if (result.mazeFile != NULL) {
+        free(result.mazeFile);
+    }
 
     return 0;
 }

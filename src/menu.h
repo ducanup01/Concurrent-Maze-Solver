@@ -22,12 +22,16 @@ DynamicMenu* createDynamicMenu() {
     menu->filenames = malloc(menu->maxOptions * sizeof(char*));
     menu->count = 0;
 
-    // Add generation options
-    menu->options[menu->count] = "Randomize maze";
+    // Add generation options (allocate memory for these)
+    char *opt1 = malloc(64);
+    strcpy(opt1, "Randomize maze");
+    menu->options[menu->count] = opt1;
     menu->filenames[menu->count] = NULL;
     menu->count++;
 
-    menu->options[menu->count] = "Randomize imperfect maze";
+    char *opt2 = malloc(64);
+    strcpy(opt2, "Randomize imperfect maze");
+    menu->options[menu->count] = opt2;
     menu->filenames[menu->count] = NULL;
     menu->count++;
 
@@ -54,8 +58,10 @@ DynamicMenu* createDynamicMenu() {
         closedir(dir);
     }
 
-    // Add exit option
-    menu->options[menu->count] = "Exit";
+    // Add exit option (allocate memory)
+    char *exitOpt = malloc(64);
+    strcpy(exitOpt, "Exit");
+    menu->options[menu->count] = exitOpt;
     menu->filenames[menu->count] = NULL;
     menu->count++;
 
@@ -134,8 +140,17 @@ MenuResult runDynamicMenu() {
         else if (c == '\n') // ENTER
         {
             result.choice = selected;
-            result.mazeFile = menu->filenames[selected];
             result.totalOptions = menu->count;
+            
+            // Copy the file path before freeing menu
+            if (menu->filenames[selected] != NULL) {
+                char *filepath = malloc(512);
+                strcpy(filepath, menu->filenames[selected]);
+                result.mazeFile = filepath;
+            } else {
+                result.mazeFile = NULL;
+            }
+            
             freeDynamicMenu(menu);
             return result;
         }
