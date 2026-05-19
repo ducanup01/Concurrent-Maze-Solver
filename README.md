@@ -66,7 +66,10 @@ Our program is written in C and only works on POSIX compliant systems like Linux
 Simply clone the github repo with `git clone`, then compile from the `src` directory with:
 
 ```bash
-gcc src/main.c src/maze.c src/stack.c src/linkedListQueue.c -o main -lpthread
+git clone https://github.com/ducanup01/Concurrent-Maze-Solver.git
+```
+```bash
+cd Concurrent-Maze-Solver && gcc src/main.c src/maze.c src/stack.c src/linkedListQueue.c -o main -lpthread
 ```
 
 ---
