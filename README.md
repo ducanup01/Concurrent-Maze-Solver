@@ -55,7 +55,7 @@ While one thread is sleeping, multithreaded programming allows other threads to 
 
 **Thread's lifecycle:**
 
-![Thread Lifecycle Diagram](assets/thread_lifecycle.png)
+![Thread Lifecycle Diagram](assests/thread_lifecycle.png)
 
 ---
 
